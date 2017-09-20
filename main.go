@@ -18,6 +18,7 @@ import (
 var done = make(chan struct{})
 var peripheralID string
 var message string
+var name string
 var discovery bool
 
 func onStateChanged(d gatt.Device, s gatt.State) {
@@ -33,7 +34,7 @@ func onStateChanged(d gatt.Device, s gatt.State) {
 }
 
 func onPeriphDiscovered(p gatt.Peripheral, a *gatt.Advertisement, rssi int) {
-	if strings.ToUpper(p.ID()) == peripheralID {
+	if (strings.ToUpper(p.ID()) == peripheralID) || (p.Name() == name) || (a.LocalName == name){
 		// Stop scanning once we've got the peripheral we're looking for.
 		p.Device().StopScanning()
 		p.Device().Connect(p)
@@ -169,7 +170,8 @@ takes control of every Bluetooth LE device near it
 ********************************************************************
 
 `)
-	peripheralIDs := flag.String("id", "", "ID of device to notify (get from scan)")
+	peripheralIDs := flag.String("id", "", "ID of device to notify (get from --discover)")
+	names := flag.String("name", "", "Send to every device with this name")
 	messages := flag.String("text", "", "Message to send")
 	discovers := flag.Bool("discover", false, "Scan for devices")
 	flag.Parse()
@@ -180,6 +182,7 @@ takes control of every Bluetooth LE device near it
 	peripheralID= strings.ToUpper(*peripheralIDs)
 	message = pad.Right(*messages, 12, " ")
 	message = message[0:12]
+	name = *names
 	fmt.Println("Sending message: |", message, "|")
 
 
