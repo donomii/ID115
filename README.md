@@ -15,7 +15,7 @@ but it is easier just to use the watch name
 
     ID115 --text="Hello world!" --name ID115
 
-### Suggeted uses
+### Suggested uses
 
 	make && ID115 --text "Job Done!" --name ID115
 
