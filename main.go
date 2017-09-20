@@ -4,6 +4,7 @@ package main
 // To compile: export GODEBUG=cgocheck=0
 
 import (
+	"os"
 	"flag"
 	"fmt"
 	"log"
@@ -20,6 +21,7 @@ var peripheralID string
 var message string
 var name string
 var discovery bool
+var spam bool
 
 func onStateChanged(d gatt.Device, s gatt.State) {
 	fmt.Println("State:", s)
@@ -148,14 +150,23 @@ func onPeriphConnected(p gatt.Peripheral, err error) {
 		fmt.Println("Notification sent!")
 	}
 
-	fmt.Printf("Waiting for 5 seconds to get some notifiations, if any.\n")
-	time.Sleep(5 * time.Second)
-	close(done)
+	//Note that we *must* wait for notifications, disconnecting immediately can cause the message we just wrote to be dropped
+	fmt.Printf("Waiting for 5 seconds to get some notifications, if any.\n")
+	time.Sleep(5*time.Second)
+	if !spam {
+		close(done)
+	}
+	fmt.Println("Peripheral probe complete")
 }
 
 func onPeriphDisconnected(p gatt.Peripheral, err error) {
 	fmt.Println("Disconnected")
-	close(done)
+	if spam {
+		p.Device().Scan(nil, true)
+		p.Device().Scan([]gatt.UUID{}, false)
+	} else {
+		close(done)
+	}
 }
 
 func main() {
@@ -174,7 +185,9 @@ takes control of every Bluetooth LE device near it
 	names := flag.String("name", "", "Send to every device with this name")
 	messages := flag.String("text", "", "Message to send")
 	discovers := flag.Bool("discover", false, "Scan for devices")
+	flag.BoolVar(&spam, "spam", false, "Notify every matching device")
 	flag.Parse()
+	fmt.Println("Spam state: ", spam)
 	//if *peripheralIDs=="" {
 		//log.Fatalf("Peripheral ID must be given")
 	//}
@@ -184,6 +197,14 @@ takes control of every Bluetooth LE device near it
 	message = message[0:12]
 	name = *names
 	fmt.Println("Sending message: |", message, "|")
+
+	if spam {
+		go func () {
+			time.Sleep(90*time.Second)
+			fmt.Println("Killed by timer")
+			os.Exit(0)
+		}()
+	}
 
 
 	d, err := gatt.NewDevice(option.DefaultClientOptions...)
