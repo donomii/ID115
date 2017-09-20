@@ -18,3 +18,8 @@ but it is easier just to use the watch name
 ## Help, I can't find my watch!
 
 Only one program per computer can connect to a watch at the same time (wtf).  Check that your default bluetooth manager hasn't connected to it by mistake.
+
+## TO DO
+
+* Add option to spam every watch within range
+* Implement longer messages (requires fiddling with the multi-message vendor format)
