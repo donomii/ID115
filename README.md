@@ -11,6 +11,9 @@ Where do you get the id (382b0c42127c4532b259874bdbf41c4c) from?  By running dis
 
     ID115 --discover
 
+but it is easier just to use the watch name
+
+    ID115 --text="Hello world!" --name ID115
 
 ## Help, I can't find my watch!
 
