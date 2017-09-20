@@ -141,14 +141,16 @@ func onPeriphConnected(p gatt.Peripheral, err error) {
 	}
 
 	if targetChara != nil {
-		fmt.Println("Sending notification")
-		myBytes := []byte{5, 3, 1, 1, 1, 4, 0, 8, 72, 101, 108, 108, 111, 32, 119, 111, 114, 108, 100, 33}
-		p.WriteCharacteristic(targetChara, myBytes, true)
+		myBytes := []byte(message)
+		fmt.Println("Sending notification", myBytes,"!")
+	
+		p.WriteCharacteristic(targetChara, append([]byte{5, 3, 1, 1, 1, 4, 0, 8},  myBytes...), true)
 		fmt.Println("Notification sent!")
 	}
 
 	fmt.Printf("Waiting for 5 seconds to get some notifiations, if any.\n")
 	time.Sleep(5 * time.Second)
+	close(done)
 }
 
 func onPeriphDisconnected(p gatt.Peripheral, err error) {
@@ -164,8 +166,8 @@ func main() {
 		log.Fatalf("Peripheral ID must be given")
 	}
 	peripheralID= strings.ToUpper(*peripheralIDs)
-	message = pad.Right(*messages, 20, " ")
-	message = message[0:19]
+	message = pad.Right(*messages, 12, " ")
+	message = message[0:12]
 	fmt.Println("Sending message: |", message, "|")
 
 
