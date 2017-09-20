@@ -15,6 +15,10 @@ but it is easier just to use the watch name
 
     ID115 --text="Hello world!" --name ID115
 
+### Suggeted uses
+
+	make && ID115 --text "Job Done!" --name ID115
+
 ## Help, I can't find my watch!
 
 Only one program per computer can connect to a watch at the same time (wtf).  Check that your default bluetooth manager hasn't connected to it by mistake.
