@@ -29,3 +29,4 @@ Only one program per computer can connect to a watch at the same time (wtf).  Ch
 * Implement longer messages (requires fiddling with the multi-message vendor format)
 * Probe devices in parallel?
 * Notify all devices that match some criteria
+* Add more functions (camera, alarm, set time, etc)
