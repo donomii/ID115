@@ -18,6 +18,7 @@ import (
 var done = make(chan struct{})
 var peripheralID string
 var message string
+var discovery bool
 
 func onStateChanged(d gatt.Device, s gatt.State) {
 	fmt.Println("State:", s)
@@ -32,21 +33,19 @@ func onStateChanged(d gatt.Device, s gatt.State) {
 }
 
 func onPeriphDiscovered(p gatt.Peripheral, a *gatt.Advertisement, rssi int) {
-	if strings.ToUpper(p.ID()) != peripheralID {
-		return
+	if strings.ToUpper(p.ID()) == peripheralID {
+		// Stop scanning once we've got the peripheral we're looking for.
+		p.Device().StopScanning()
+		p.Device().Connect(p)
 	}
 
-	// Stop scanning once we've got the peripheral we're looking for.
-	p.Device().StopScanning()
+	fmt.Printf("Peripheral ID:%s, NAME:(%s), ", p.ID(), p.Name())
+	fmt.Println("Local Name =", a.LocalName)
+	//fmt.Println("  TX Power Level    =", a.TxPowerLevel)
+	//fmt.Println("  Manufacturer Data =", a.ManufacturerData)
+	//fmt.Println("  Service Data      =", a.ServiceData)
+	//fmt.Println("")
 
-	fmt.Printf("\nPeripheral ID:%s, NAME:(%s)\n", p.ID(), p.Name())
-	fmt.Println("  Local Name        =", a.LocalName)
-	fmt.Println("  TX Power Level    =", a.TxPowerLevel)
-	fmt.Println("  Manufacturer Data =", a.ManufacturerData)
-	fmt.Println("  Service Data      =", a.ServiceData)
-	fmt.Println("")
-
-	p.Device().Connect(p)
 }
 
 func onPeriphConnected(p gatt.Peripheral, err error) {
@@ -161,10 +160,12 @@ func onPeriphDisconnected(p gatt.Peripheral, err error) {
 func main() {
 	peripheralIDs := flag.String("id", "", "ID of device to notify (get from scan)")
 	messages := flag.String("text", "", "Message to send")
+	discovers := flag.Bool("discover", false, "Scan for devices")
 	flag.Parse()
-	if *peripheralIDs=="" {
-		log.Fatalf("Peripheral ID must be given")
-	}
+	//if *peripheralIDs=="" {
+		//log.Fatalf("Peripheral ID must be given")
+	//}
+	discovery = *discovers
 	peripheralID= strings.ToUpper(*peripheralIDs)
 	message = pad.Right(*messages, 12, " ")
 	message = message[0:12]
