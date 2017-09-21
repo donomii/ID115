@@ -4,6 +4,7 @@ package main
 // To compile: export GODEBUG=cgocheck=0
 
 import (
+	"syscall"
 	"os"
 	"flag"
 	"fmt"
@@ -22,12 +23,13 @@ var message string
 var name string
 var discovery bool
 var spam bool
+var verbose bool
 
 func onStateChanged(d gatt.Device, s gatt.State) {
-	fmt.Println("State:", s)
+	if verbose { fmt.Println("State:", s) }
 	switch s {
 	case gatt.StatePoweredOn:
-		fmt.Println("Scanning...")
+		if verbose { fmt.Println("Scanning...") }
 		d.Scan([]gatt.UUID{}, false)
 		return
 	default:
@@ -38,16 +40,24 @@ func onStateChanged(d gatt.Device, s gatt.State) {
 func onPeriphDiscovered(p gatt.Peripheral, a *gatt.Advertisement, rssi int) {
 	if (strings.ToUpper(p.ID()) == peripheralID) || (p.Name() == name) || (a.LocalName == name){
 		// Stop scanning once we've got the peripheral we're looking for.
-		p.Device().StopScanning()
-		p.Device().Connect(p)
+		if !discovery {
+			p.Device().StopScanning()
+			p.Device().Connect(p)
+		}
+		if verbose {
+			fmt.Println("Found device, connecting...")
+		}
 	}
 
-	fmt.Printf("Peripheral ID:%s, NAME:(%s), ", p.ID(), p.Name())
-	fmt.Println("Local Name =", a.LocalName)
-	//fmt.Println("  TX Power Level    =", a.TxPowerLevel)
-	//fmt.Println("  Manufacturer Data =", a.ManufacturerData)
-	//fmt.Println("  Service Data      =", a.ServiceData)
-	//fmt.Println("")
+	fmt.Printf("Peripheral ID:%s, NAME:(%s), \n", p.ID(), p.Name())
+	if verbose {
+		fmt.Println("Local Name =", a.LocalName)
+		fmt.Println("  TX Power Level    =", a.TxPowerLevel)
+		fmt.Println("  Manufacturer Data =", a.ManufacturerData)
+		fmt.Println("  Service Data      =", a.ServiceData)
+		fmt.Println("")
+		fmt.Println("Found device, connecting...")
+	}
 
 }
 
@@ -170,6 +180,22 @@ func onPeriphDisconnected(p gatt.Peripheral, err error) {
 }
 
 func main() {
+	if os.Getenv("GODEBUG") == "" {
+		os.Setenv("GODEBUG", "cgocheck=0")
+	if err := syscall.Exec(os.Args[0], os.Args, os.Environ()); err != nil {
+		log.Fatal(err)
+	}
+		/*cmd := exec.Command(os.Args[0], os.Args[1:]...)
+		fmt.Printf(">%v\n",cmd)
+		out, err := cmd.Output()
+		fmt.Printf(">%s\n",out)
+		fmt.Println(">",err)
+*/
+		
+		
+		fmt.Println("done")
+		os.Exit(0)
+	}
 	fmt.Println(`
 
 ********************************************************************
@@ -186,8 +212,9 @@ takes control of every Bluetooth LE device near it
 	messages := flag.String("text", "", "Message to send")
 	discovers := flag.Bool("discover", false, "Scan for devices")
 	flag.BoolVar(&spam, "spam", false, "Notify every matching device")
+	flag.BoolVar(&verbose, "verbose", false, "Print extra information")
+	flag.BoolVar(&verbose, "v", false, "Print extra information")
 	flag.Parse()
-	fmt.Println("Spam state: ", spam)
 	//if *peripheralIDs=="" {
 		//log.Fatalf("Peripheral ID must be given")
 	//}
@@ -196,7 +223,10 @@ takes control of every Bluetooth LE device near it
 	message = pad.Right(*messages, 12, " ")
 	message = message[0:12]
 	name = *names
-	fmt.Println("Sending message: |", message, "|")
+	if verbose {
+		fmt.Println("Spam state: ", spam)
+		fmt.Println("Sending message: |", message, "|")
+	}
 
 	if spam {
 		go func () {
