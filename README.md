@@ -15,6 +15,13 @@ but it is easier just to use the watch name
 
     ID115 --text="Hello world!" --name ID115
 
+## Options
+
+	--text		The message to display
+	--id		The peripheral id
+	--name		The "local name" to send to
+	--verbose	Print LOTS of extra debugging
+
 ### Suggested uses
 
 	make && ID115 --text "Job Done!" --name ID115
