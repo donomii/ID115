@@ -4,7 +4,7 @@
 
 ## But if you really want to anyway...
 
-    ID115 --text="Hello world!" --id 382b0c42127c4532b259874bdbf41c4c
+    ID115 --text="Hello world!" --id 382b0c42127c4532b259874bdbf41c4c --type ID115
 
 
 Where do you get the id (382b0c42127c4532b259874bdbf41c4c) from?  By running discover.
@@ -13,7 +13,7 @@ Where do you get the id (382b0c42127c4532b259874bdbf41c4c) from?  By running dis
 
 but it is easier just to use the watch name
 
-    ID115 --text="Hello world!" --name ID115
+    ID115 --text="Hello world!" --name ID115 --type ID115
 
 ## Options
 
@@ -24,7 +24,7 @@ but it is easier just to use the watch name
 
 ### Suggested uses
 
-	make && ID115 --text "Job Done!" --name ID115
+	make && ID115 --text "Job Done!" --name ID115 --type ID115
 
 ## Help, I can't find my watch!
 

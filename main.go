@@ -332,13 +332,15 @@ takes control of every Bluetooth LE device near it
 	flag.BoolVar(&verbose, "v", false, "Print extra information")
 	flag.StringVar(&bandType, "type", "None", "Type of band, 'ID115' or 'HBand'")
 	flag.Parse()
-	if bandType == "None" {
-		panic("You must choose a band type")
+	discovery = *discovers
+	if !discovery {
+		if bandType == "None" {
+			panic("You must choose a band type")
+		}
 	}
 	//if *peripheralIDs=="" {
 		//log.Fatalf("Peripheral ID must be given")
 	//}
-	discovery = *discovers
 	peripheralID= strings.ToUpper(*peripheralIDs)
 	name = *names
 	if verbose {
