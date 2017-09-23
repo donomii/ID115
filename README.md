@@ -15,14 +15,22 @@ but it is easier just to use the watch name
 
     ID115 --text="Hello world!" --name ID115 --type ID115
 
-## Options
+### Options
 
 	--text		The message to display
+	--type		ID115 or HBand
 	--id		The peripheral id
 	--name		The "local name" to send to
 	--verbose	Print LOTS of extra debugging
 
-### Suggested uses
+### Supported watches
+
+ID115 and HBand
+
+More to come!
+
+
+## Suggested uses
 
 	make && ID115 --text "Job Done!" --name ID115 --type ID115
 
@@ -32,11 +40,9 @@ Only one program per computer can connect to a watch at the same time (wtf).  Ch
 
 ## Idiosyncracies
 
-Lots.  Possibly the worst from a user point of view is that whenever another device unpairs the watch, the watch gives itself a new peripheral ID.  I'm pretty sure changing the ID at all is against the spec, and it is certainly a bad idea because it causes the vendor app to lose track of the watch.
+Lots.  Possibly the worst from a user point of view is that whenever another device unpairs the watch, the watch gets itself a new peripheral ID.  This also appears to confuse the android app.
 
-I could be confusing this with another kind of ID, but I thought the peripheral ID was supposed to be set at the factory and then never changed after that.
-
-Regardless, this explains why so many customers are complaining that they are having troubles connecting to the watch, and why it appears to stop working for them.  It also appears that you can screw over a random stranger by pairing with their watch, then unpairing.
+This explains why so many customers are complaining that they are having troubles connecting to the watch, and why it appears to stop working for them.  It also appears that you can screw over a random stranger by pairing with their watch, then unpairing.
 
 To make this worse, there are no further identifying features for the watch.  There are no details in the Manufacturers data section, or the Service data section.  Which means:
 
@@ -50,7 +56,7 @@ This goes a long way towards explaining why there are 3 different versions of th
 ## TO DO
 
 * Add option to spam every watch within range
-* Implement longer messages (requires fiddling with the multi-message vendor format)
+* Implement longer messages (requires fiddling with the multi-message vendor format) (done!)
 * Probe devices in parallel?
 * Notify all devices that match some criteria
 * Add more functions (camera, alarm, set time, etc)
