@@ -19,11 +19,12 @@ import (
 
 var done = make(chan struct{})
 var peripheralID string
-var message string
+var rawMessage string
 var name string
 var discovery bool
 var spam bool
 var verbose bool
+var bandType string
 
 func onStateChanged(d gatt.Device, s gatt.State) {
 	if verbose { fmt.Println("State:", s) }
@@ -38,7 +39,7 @@ func onStateChanged(d gatt.Device, s gatt.State) {
 }
 
 func onPeriphDiscovered(p gatt.Peripheral, a *gatt.Advertisement, rssi int) {
-	if (strings.ToUpper(p.ID()) == peripheralID) || (p.Name() == name) || (a.LocalName == name){
+	if (strings.ToUpper(p.ID()) == peripheralID) || ((name != "") && (p.Name() == name)) || ((name != "") && (a.LocalName == name)){
 		// Stop scanning once we've got the peripheral we're looking for.
 		if !discovery {
 			p.Device().StopScanning()
@@ -49,7 +50,7 @@ func onPeriphDiscovered(p gatt.Peripheral, a *gatt.Advertisement, rssi int) {
 		}
 	}
 
-	fmt.Printf("Peripheral ID:%s, NAME:(%s), \n", p.ID(), p.Name())
+	fmt.Printf("Peripheral ID:%s, names:(%s, %s), \n", p.ID(), p.Name(), a.LocalName)
 	if verbose {
 		fmt.Println("Local Name =", a.LocalName)
 		fmt.Println("  TX Power Level    =", a.TxPowerLevel)
@@ -61,8 +62,70 @@ func onPeriphDiscovered(p gatt.Peripheral, a *gatt.Advertisement, rssi int) {
 
 }
 
+func readCharacteristic(p gatt.Peripheral, c *gatt.Characteristic) {
+	defer func() {
+		if r := recover(); r != nil {
+		    fmt.Println("Recovered in readChara", r)
+		}
+	}()
+
+	b, err := p.ReadCharacteristic(c)
+	if err != nil {
+		fmt.Printf("Failed to read characteristic, err: %s\n", err)
+		return
+	}
+	if verbose {
+	fmt.Printf("    value         %x | %q\n", b, b)
+	}
+}
+
+func readDescriptor(p gatt.Peripheral, d *gatt.Descriptor) {
+    defer func() {
+        if r := recover(); r != nil {
+            fmt.Println("Recovered in readDes", r)
+        }
+    }()
+// Read descriptor (could fail, if it's not readable)
+	//fmt.Printf("%+v\n", d)
+	b, err := p.ReadDescriptor(d)
+	if err != nil {
+		fmt.Printf("Failed to read descriptor, err: %s\n", err)
+		return
+	}
+	if verbose {
+		fmt.Printf("    value         %x | %q\n", b, b)
+	}
+}
+
+func discoverDescriptorsWrapper(p gatt.Peripheral, c *gatt.Characteristic) (ds []*gatt.Descriptor, err error){
+	defer func() {
+		if r := recover(); r != nil {
+		    fmt.Println("Recovered in DesWrap", r)
+		}
+	}()
+	//err = errors.New("unknown error")
+	ds, err = p.DiscoverDescriptors(nil, c)
+	return
+}
+
+
+func discoverCharacteristicsWrapper(p gatt.Peripheral, s *gatt.Service) (cs []*gatt.Characteristic, err error){
+	defer func() {
+		if r := recover(); r != nil {
+		    fmt.Println("Recovered in CharWrap", r)
+		}
+	}()
+	//err = errors.New("unknown error")
+	fmt.Printf("%+v\n", s)
+	cs, err = p.DiscoverCharacteristics(nil, s)
+	return
+}
+
+
+
 func onPeriphConnected(p gatt.Peripheral, err error) {
 	fmt.Println("Connected")
+	fmt.Printf("%+v\n", p)
 	defer p.Device().CancelConnection(p)
 
 	if err := p.SetMTU(500); err != nil {
@@ -77,6 +140,7 @@ func onPeriphConnected(p gatt.Peripheral, err error) {
 	}
 
 	var targetChara *gatt.Characteristic
+	found := false
 
 	for _, s := range ss {
 		msg := "Service: " + s.UUID().String()
@@ -86,87 +150,139 @@ func onPeriphConnected(p gatt.Peripheral, err error) {
 		fmt.Println(msg)
 
 		// Discovery characteristics
-		cs, err := p.DiscoverCharacteristics(nil, s)
-		if err != nil {
+		cs, err := discoverCharacteristicsWrapper(p, s)
+		if err != nil || cs == nil {
 			fmt.Printf("Failed to discover characteristics, err: %s\n", err)
 			continue
 		}
 
 		for _, c := range cs {
-			msg := "  Characteristic  " + c.UUID().String()
+			msg := "  Characteristic  (" + fmt.Sprintf("%v",c.Handle()) + ")" + c.UUID().String()
 			if len(c.Name()) > 0 {
 				msg += " (" + c.Name() + ")"
 			}
 			msg += "\n    properties    " + c.Properties().String()
+	if verbose {
 			fmt.Println(msg)
-			if c.UUID().String() =="0af6" {
-				fmt.Println("Found it!")
+	}
+			if c.UUID().String() =="0af6" || c.UUID().String() == "f008000304514000b000000000000000" {
+		if verbose {
+				fmt.Println("Found it!", c.UUID().String())
+		}
 				targetChara = c
+				found = true
 			}
 
 			// Read the characteristic, if possible.
 			if (c.Properties() & gatt.CharRead) != 0 {
-				b, err := p.ReadCharacteristic(c)
-				if err != nil {
-					fmt.Printf("Failed to read characteristic, err: %s\n", err)
-					continue
-				}
-				fmt.Printf("    value         %x | %q\n", b, b)
+				readCharacteristic(p,c)
 			}
 
 			// Discovery descriptors
-			ds, err := p.DiscoverDescriptors(nil, c)
+			ds, err := discoverDescriptorsWrapper(p, c)
 			if err != nil {
 				fmt.Printf("Failed to discover descriptors, err: %s\n", err)
 				continue
 			}
 
 			for _, d := range ds {
-				msg := "  Descriptor      " + d.UUID().String()
+				msg := "  Descriptor      ("+ fmt.Sprintf("%v",d.Handle()) +")" + d.UUID().String()
 				if len(d.Name()) > 0 {
 					msg += " (" + d.Name() + ")"
 				}
+		if verbose {
 				fmt.Println(msg)
+		}
 
-				// Read descriptor (could fail, if it's not readable)
-				b, err := p.ReadDescriptor(d)
-				if err != nil {
-					fmt.Printf("Failed to read descriptor, err: %s\n", err)
-					continue
-				}
-				fmt.Printf("    value         %x | %q\n", b, b)
+				readDescriptor(p, d)
 			}
 
-			// Subscribe the characteristic, if possible.
-			if (c.Properties() & (gatt.CharNotify | gatt.CharIndicate)) != 0 {
-				f := func(c *gatt.Characteristic, b []byte, err error) {
-					fmt.Printf("notified: % X | %q\n", b, b)
-				}
-				if err := p.SetNotifyValue(c, f); err != nil {
-					fmt.Printf("Failed to subscribe characteristic, err: %s\n", err)
-					continue
-				}
-			}
 
 		}
 		fmt.Println()
 	}
 
-	if targetChara != nil {
-		myBytes := []byte(message)
-		fmt.Println("Sending notification", myBytes,"!")
-	
-		p.WriteCharacteristic(targetChara, append([]byte{5, 3, 1, 1, 1, 4, 0, 8},  myBytes...), true)
-		fmt.Println("Notification sent!")
+	if found {
+		fmt.Println("Sending message to", targetChara.UUID().String()) 
+		if bandType =="ID115" {
+			message, message_length := padTo(rawMessage, 22)   //Two packets worth of data
+			head := message[0:12]
+			rest := message[13:22]
+			head_length := 0
+			rest_length := 0
+			if message_length <13 {
+				head_length = message_length
+				rest_length = 0
+			} else {
+				head_length = 12
+				rest_length = message_length-12
+			}
+
+			fmt.Println("Sending notification", head, rest,"!", head_length, rest_length)
+		
+			p.WriteCharacteristic(targetChara, append([]byte{5, 3, 2, 1, 1, byte(message_length), 0, 8},  head...), true)
+			p.WriteCharacteristic(targetChara, append([]byte{5, 3, 2, 2 },  rest...), true)
+			fmt.Println("Notification sent!")
+		} else {
+			display_mode := byte(6)
+			message, message_length := padTo(rawMessage, 28)   //Two packets worth of data
+			head := message[0:14]
+			rest := message[15:28]
+			head_length := 0
+			rest_length := 0
+			if message_length <15 {
+				head_length = message_length
+				rest_length = 0
+			} else {
+				head_length = 14
+				rest_length = message_length-14
+			}
+			fmt.Println("Sending notification", head, ":", message,"!")
+		
+			packet := append([]byte{194, display_mode, byte(head_length), 2, 1, 2},  []byte(head)...)
+			p.WriteCharacteristic(targetChara, packet, true)
+			fmt.Println("Sent", packet," with payload of length ", head_length)
+
+			packet = append([]byte{194, display_mode, byte(rest_length), 2, 2, 2},  []byte(rest)...)
+			p.WriteCharacteristic(targetChara, packet, true)
+		if verbose {
+			fmt.Println("Sent", packet," with payload of length ", rest_length)
+		}
+
+			//Repeat, because that's what we have to do
+			//packet = append([]byte{194, 17, byte(rest_length), 3, 3, 2},  []byte(rest)...)
+			//p.WriteCharacteristic(targetChara, packet, true)
+			//fmt.Println("Sent", packet," with payload of length ", rest_length)
+			//time.Sleep(2*time.Second)
+
+			//No idea what this does, but the official software does, so we do it too
+			p.WriteCharacteristic(targetChara, []byte{193, 1, 1, 1}, true)
+			fmt.Println("Sent", []byte{193, 1, 1, 1},"!")
+
+			fmt.Println("Notification sent!")
+
+		}
+	//Note that we *must* wait for notifications, disconnecting immediately can cause the message we just wrote to be dropped
+	//Of course it would be better if we could just quit upon receiving the notification
+	fmt.Printf("Waiting for 5 seconds to get some notifications, if any.\n")
 	}
 
-	//Note that we *must* wait for notifications, disconnecting immediately can cause the message we just wrote to be dropped
-	fmt.Printf("Waiting for 5 seconds to get some notifications, if any.\n")
-	time.Sleep(5*time.Second)
+	time.Sleep(1*time.Second)
 	if !spam {
 		close(done)
 	}
 	fmt.Println("Peripheral probe complete")
+}
+
+func padTo(s string, size int) ([]byte, int) {
+	message := s 
+	original_length := len(message)
+	if original_length>size {
+		original_length = size
+	}
+	message = pad.Right(message, size, "\x00")
+	message = message[0:size]
+	return []byte(message), original_length
 }
 
 func onPeriphDisconnected(p gatt.Peripheral, err error) {
@@ -209,23 +325,25 @@ takes control of every Bluetooth LE device near it
 `)
 	peripheralIDs := flag.String("id", "", "ID of device to notify (get from --discover)")
 	names := flag.String("name", "", "Send to every device with this name")
-	messages := flag.String("text", "", "Message to send")
+	flag.StringVar(&rawMessage, "text", "", "Message to send")
 	discovers := flag.Bool("discover", false, "Scan for devices")
 	flag.BoolVar(&spam, "spam", false, "Notify every matching device")
 	flag.BoolVar(&verbose, "verbose", false, "Print extra information")
 	flag.BoolVar(&verbose, "v", false, "Print extra information")
+	flag.StringVar(&bandType, "type", "None", "Type of band, 'ID115' or 'HBand'")
 	flag.Parse()
+	if bandType == "None" {
+		panic("You must choose a band type")
+	}
 	//if *peripheralIDs=="" {
 		//log.Fatalf("Peripheral ID must be given")
 	//}
 	discovery = *discovers
 	peripheralID= strings.ToUpper(*peripheralIDs)
-	message = pad.Right(*messages, 12, " ")
-	message = message[0:12]
 	name = *names
 	if verbose {
 		fmt.Println("Spam state: ", spam)
-		fmt.Println("Sending message: |", message, "|")
+		fmt.Println("Sending message: |", rawMessage, "|")
 	}
 
 	if spam {
