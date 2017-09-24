@@ -60,3 +60,7 @@ This goes a long way towards explaining why there are 3 different versions of th
 * Probe devices in parallel?
 * Notify all devices that match some criteria
 * Add more functions (camera, alarm, set time, etc)
+
+## Credits
+
+This program is a heavy modification of one of the example programs in "github.com/paypal/gatt"
