@@ -61,6 +61,12 @@ This goes a long way towards explaining why there are 3 different versions of th
 * Notify all devices that match some criteria
 * Add more functions (camera, alarm, set time, etc)
 
+
+## Install
+
+	go get -u github.com/donomii/ID115
+	go build github.com/donomii/ID115
+	
 ## Credits
 
 This program is a heavy modification of one of the example programs in "github.com/paypal/gatt"
