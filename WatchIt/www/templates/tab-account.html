@@ -1,0 +1,23 @@
+<ion-view view-title="Notificator">
+  <ion-content>
+                <h2>Notification station</h2>
+            <h1 id="beatsPerMinute">...</h1>
+
+    <ion-list>
+ <div class = "item item-input-inset">
+              <label class = "item item-input-wrapper">
+                 <input id = "userMessage" type = "text" placeholder = "Message"  />
+              </label>
+            </div>
+	<button class="button button-block button-positive" ng-click="handleClick();"> Send </button>
+ <div class = "item item-input-inset">
+	<button class="button button-block button-positive" ng-click="startScan();"> Scan </button>
+</div>
+
+    <ion-toggle  ng-model="settings.enableFriends">
+        Keep log history
+    </ion-toggle>
+    </ion-list>
+            <div id="statusDiv"></div>
+  </ion-content>
+</ion-view>
